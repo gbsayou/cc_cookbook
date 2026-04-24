@@ -10,7 +10,7 @@ const navbar = (
 );
 
 const footer = (
-  <Footer>© {new Date().getFullYear()} Claude Code Cookbook</Footer>
+  <Footer>© 2026 Claude Code Cookbook</Footer>
 );
 
 export default async function DocsLayout({ children }: { children: ReactNode }) {
