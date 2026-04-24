@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import styles from '../styles/terminal.module.scss';
 

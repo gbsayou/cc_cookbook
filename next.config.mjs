@@ -1,8 +1,8 @@
 import nextra from 'nextra';
 
 const withNextra = nextra({
-  theme: 'nextra-theme-docs',
-  themeConfig: './theme.config.tsx',
+  // Nextra 4: content lives in /content by default,
+  // theme config moved to app/(docs)/layout.tsx
 });
 
 export default withNextra({
