@@ -5,7 +5,7 @@ import { getPageMap } from 'nextra/page-map';
 const navbar = (
   <Navbar
     logo={<span style={{ fontWeight: 600 }}>Claude Code Cookbook</span>}
-    projectLink="https://github.com/anthropics/claude-code"
+    projectLink="https://github.com/gbsayou/cc_cookbook"
   />
 );
 
@@ -21,7 +21,7 @@ export default async function DocsLayout({ children }: { children: ReactNode }) 
       navbar={navbar}
       footer={footer}
       pageMap={pageMap}
-      docsRepositoryBase="https://github.com/your-org/cc-cookbook"
+      docsRepositoryBase="https://github.com/gbsayou/cc_cookbook"
       sidebar={{ defaultMenuCollapseLevel: 1 }}
     >
       {children}
