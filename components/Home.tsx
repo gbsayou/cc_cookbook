@@ -13,7 +13,7 @@ const CARDS = [
     icon: '◆',
     title: '命令大全',
     desc: '内置 slash 命令、自定义命令与常用 workflow 速查。',
-    href: '/getting-started',
+    href: '/commands',
     cta: '查看清单',
   },
   {
@@ -41,6 +41,7 @@ export default function Home() {
           <span className={styles.brand}>Claude Code Cookbook</span>
           <div className={styles.navLinks}>
             <Link href="/getting-started">快速开始</Link>
+            <Link href="/commands">命令大全</Link>
             <Link href="/playground">演练</Link>
             <a
               href="https://github.com/anthropics/claude-code"

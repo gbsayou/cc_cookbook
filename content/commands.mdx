@@ -1,0 +1,82 @@
+# 命令大全
+
+Claude Code 的 slash 命令在会话里输入 `/` 即可触发，用来切模型、管权限、清上下文、跑工作流等等。下面挑出日常真正会用到的那批，按场景分组。
+
+完整清单见 [官方文档](https://code.claude.com/docs/en/commands)。
+
+## 上下文 & 会话
+
+| 命令 | 用途 |
+| :-- | :-- |
+| `/context` | 可视化当前上下文占用，看哪些工具/文件吃了内存 |
+| `/compact [指令]` | 压缩对话释放上下文，可选参数聚焦保留内容 |
+| `/clear` | 清空上下文开新会话（别名 `/reset`、`/new`） |
+| `/rewind` | 回滚对话或代码到之前某个点（别名 `/checkpoint`、`/undo`） |
+| `/resume [会话]` | 恢复历史会话（别名 `/continue`） |
+| `/branch [名称]` | 从当前点分叉出一条平行对话（别名 `/fork`） |
+| `/rename [名称]` | 给当前会话起个名，会显示在提示栏 |
+| `/export [文件]` | 导出对话为纯文本 |
+| `/recap` | 生成一句话会话总结 |
+
+## 模型 & 配置
+
+| 命令 | 用途 |
+| :-- | :-- |
+| `/model [名称]` | 切换模型；支持的模型可用 ←/→ 调 effort |
+| `/effort [级别]` | 单独调推理深度：`low`/`medium`/`high`/`xhigh`/`max`/`auto` |
+| `/fast [on\|off]` | 切换 fast mode（Opus 4.6 的快速出词版本） |
+| `/permissions` | 管理工具的 allow/ask/deny 规则（别名 `/allowed-tools`） |
+| `/config` | 打开设置面板（别名 `/settings`） |
+| `/theme` | 换主题，支持 `auto` 跟随终端明暗 |
+| `/statusline` | 配置底部状态栏 |
+| `/keybindings` | 打开/新建键位配置 |
+
+## 诊断 & 信息
+
+| 命令 | 用途 |
+| :-- | :-- |
+| `/status` | 查看版本、模型、账户、连通性 |
+| `/usage` | 查看成本、额度、活动统计（别名 `/cost`、`/stats`） |
+| `/doctor` | 自检安装；按 `f` 让 Claude 自动修 |
+| `/diff` | 交互式 diff 查看器，看未提交改动和每轮修改 |
+| `/help` | 列出所有命令 |
+| `/insights` | 分析你最近的会话，生成使用报告 |
+
+## 项目 & 记忆
+
+| 命令 | 用途 |
+| :-- | :-- |
+| `/init` | 生成 `CLAUDE.md` 项目向导 |
+| `/memory` | 编辑 `CLAUDE.md`、管理 auto-memory |
+| `/add-dir [路径]` | 临时给当前会话加一个可访问目录 |
+
+## 工作流 & Skills
+
+| 命令 | 用途 |
+| :-- | :-- |
+| `/plan [描述]` | 直接进 plan 模式，可带一句任务描述 |
+| `/review [PR]` | 在当前会话里本地 review 一个 PR |
+| `/ultrareview [PR]` | 云端多 agent 深度 review（需额度） |
+| `/security-review` | 对当前分支的改动做安全审计 |
+| `/simplify [focus]` | 多 agent 并行审查最近改动，发现问题并修复 |
+| `/loop [间隔] [prompt]` | 循环跑同一个 prompt，支持定时 |
+| `/batch [指令]` | 大规模并行改造：拆成多个 worktree agent，各开 PR |
+| `/agents` | 管理自定义 subagent |
+| `/hooks` | 查看工具事件的 hook 配置 |
+| `/mcp` | 管理 MCP server 连接与 OAuth |
+| `/skills` | 列出可用 skills |
+| `/plugin` | 管理插件 |
+
+## 实用小功能
+
+| 命令 | 用途 |
+| :-- | :-- |
+| `/copy [N]` | 复制上一条回复；传数字可复制倒数第 N 条 |
+| `/btw [问题]` | 问个不污染主对话的侧问题 |
+| `/focus` | 切换聚焦视图，只显示最新一轮 |
+| `/debug [描述]` | 开启本次会话的调试日志 |
+| `/tasks` | 列出并管理后台任务（别名 `/bashes`) |
+
+## 自定义命令
+
+内置命令不够用时，可以在 `.claude/` 目录下写自己的 skill 作为命令，或通过 MCP server 暴露 prompt，会以 `/mcp__[server]__[prompt]` 的形式出现。参考 [官方 skills 文档](https://code.claude.com/docs/en/skills)。
