@@ -1,0 +1,127 @@
+# 动手写一个 Skill
+
+Skill 就是一个 `SKILL.md` 文件：YAML 前置元数据 + Markdown 指令内容。放到对应目录，Claude Code 自动加载。
+
+## 文件结构
+
+```
+my-skill/
+├── SKILL.md           # 主指令（必需）
+├── reference.md       # 参考资料（可选，按需加载）
+└── scripts/
+    └── helper.sh      # 辅助脚本（可选）
+```
+
+目录名就是 skill 名，输入 `/目录名` 即可触发。
+
+## 最简示例
+
+创建一个「总结未提交改动」的 skill：
+
+**1. 建目录**
+
+```bash
+mkdir -p ~/.claude/skills/summarize-changes
+```
+
+**2. 写 `SKILL.md`**
+
+```yaml
+---
+description: 总结 git 未提交的改动，标出风险点。用户问「改了什么」「帮我写 commit message」时自动触发。
+---
+
+## 当前改动
+
+!`git diff HEAD`
+
+## 指令
+
+用两到三个 bullet point 总结上面的改动，然后列出你注意到的风险：缺少错误处理、硬编码值、需要补测试的地方等等。如果 diff 为空，直接说没有未提交改动。
+```
+
+**3. 测试**
+
+在任意 git 项目里开 Claude Code，输入：
+
+```
+/Summarize-changes
+```
+
+或者直接问「我改了什么」，Claude 会自动匹配 description 并加载 skill。
+
+## 前置元数据字段
+
+所有字段均可选，只有 `description` 推荐填写：
+
+| 字段 | 说明 |
+| :-- | :-- |
+| `description` | 告诉 Claude 这个 skill 做什么、何时触发。最关键的字段 |
+| `disable-model-invocation` | 设为 `true` 则只能手动 `/` 触发，Claude 不会自动调 |
+| `user-invocable` | 设为 `false` 则从 `/` 菜单隐藏，只能 Claude 自动调 |
+| `allowed-tools` | skill 激活期间免确认的工具，如 `Bash(git *)` |
+| `context` | 设为 `fork` 则在独立 subagent 中运行，不污染主会话上下文 |
+| `agent` | 配合 `context: fork` 使用，指定 agent 类型：`Explore` / `Plan` / `general-purpose` |
+| `model` | skill 激活期间使用的模型 |
+| `arguments` | 命名参数列表，内容里用 `$参数名` 引用 |
+| `paths` | glob 匹配，只在操作特定文件时自动加载此 skill |
+
+## 注入动态上下文
+
+用 `` !`命令` `` 语法在执行前跑 shell 命令，输出直接嵌进 prompt。Claude 收到的是命令结果，不是命令本身：
+
+```yaml
+---
+description: 查看 PR 详情并总结
+context: fork
+agent: Explore
+allowed-tools: Bash(gh *)
+---
+
+## PR 信息
+- 改动文件：!`gh pr diff --name-only`
+- Diff：!`gh pr diff`
+- 评论：!`gh pr view --comments`
+
+## 指令
+总结这个 PR 的改动内容和潜在风险。
+```
+
+多行命令用 ` ```! ` 代码块。
+
+## 参数传递
+
+内容里用 `$ARGUMENTS` 或 `$0`、`$1` 拿参数：
+
+```yaml
+---
+name: fix-issue
+description: 修一个 GitHub issue
+disable-model-invocation: true
+---
+
+修复 GitHub issue $ARGUMENTS：
+
+1. 读 issue 描述
+2. 理解需求
+3. 实现修复
+4. 写测试
+5. 创建 commit
+```
+
+输入 `/fix-issue 123`，`$ARGUMENTS` 会被替换为 `123`。
+
+## Skill 存放位置
+
+| 位置 | 路径 | 作用范围 |
+| :-- | :-- | :-- |
+| 个人 | `~/.claude/skills/<name>/SKILL.md` | 所有项目 |
+| 项目 | `.claude/skills/<name>/SKILL.md` | 当前项目 |
+| 插件 | `<plugin>/skills/<name>/SKILL.md` | 启用插件的项目 |
+
+## 实践建议
+
+- **保持 SKILL.md 短小**：正文越精简越好，每次 skill 触发后内容会一直留在上下文里，行行都是 token 成本。超过 500 行就把细节拆到独立文件
+- **description 写清楚触发词**：把用户最可能说的自然语言关键词写进去
+- **有副作用的 skill 加 `disable-model-invocation: true`**：比如 deploy、commit、发消息这类操作，不要让 Claude 自己决定触发
+- **善用 `context: fork`**：研究类、总结类任务放 subagent 跑，主会话不受干扰

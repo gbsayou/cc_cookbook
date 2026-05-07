@@ -1,0 +1,48 @@
+# Skills
+
+Skills 是 Claude Code 的扩展能力包，把某个领域的知识、工具和工作流打包成可复用的指令集。输入 `/skill-name` 即可触发，Claude 会按 skill 里预设的流程来执行任务，而不是靠自己猜。
+
+## Skills 能干什么
+
+- **封装高频任务**：把反复做的操作（review PR、发 release、查日志）固化成 skill，一次写好，反复调用
+- **注入领域知识**：公司内部规范、特定框架的最佳实践、安全策略——这些 Claude 默认不知道的东西，skill 可以补充
+- **串联工具链**：一个 skill 能同时指挥 Claude 用 bash、git、API、浏览器……把多步操作串成一条流水线
+- **降低上手门槛**：新人不用记复杂命令，直接用 skill 就能完成标准化操作
+
+## 与自定义命令的关系
+
+Skills 比自定义命令更「重」——skill 可以包含完整的流程描述、多步操作指引、甚至限定 Claude 的行为边界。一个 skill 文件放在 `.claude/skills/` 目录下，CLI 启动时自动加载。
+
+常见的使用场景：
+
+| 场景 | 对应 skill |
+| :-- | :-- |
+| Review Pull Request | `/review` |
+| 安全审计当前分支 | `/security-review` |
+| 并行审查改动并修复 | `/simplify` |
+| 循环跑某个任务 | `/loop` |
+| 大规模并行改造 | `/batch` |
+
+## 实用 Skills
+
+以下是一些常用的社区 / 官方 skills，更多会陆续补充。
+
+### plan
+
+进入 plan 模式，先设计再编码。适合需求不明确、要改多文件的场景。输入 `/plan [描述]`，Claude 会先探索代码、出方案、等确认后才动手。
+
+### review
+
+在当前会话里本地 review 一个 PR：`/review [PR 链接]`。不用上 CI，直接在终端里看清楚改了什么、有没有坑。
+
+### simplify
+
+多 agent 并行审查当前分支的所有改动，自动发现冗余代码、潜在 bug、可优化的写法，顺手修掉。适合提交前做一次「轻量复查」：`/simplify`。
+
+### loop
+
+按固定间隔反复执行同一个 prompt：`/loop 5m "curl https://my-api/health"`。适合轮询部署状态、监控日志、定时检查，不用一直守在终端前。
+
+---
+
+后续会补充更多实用的 skills。想自己写一个？参考 [动手写一个 Skill](/write-a-skill)。

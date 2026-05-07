@@ -26,10 +26,10 @@ const CARDS = [
   },
   {
     icon: '✦',
-    title: '进阶扩展',
-    desc: 'Hooks、MCP、Agent — 把 Claude Code 嵌进你的工作流。',
-    href: '/getting-started',
-    cta: '深入了解',
+    title: 'Skills',
+    desc: '可复用的能力扩展包，一键触发 preset 工作流。',
+    href: '/skills',
+    cta: '了解 Skills',
   },
 ];
 
@@ -44,9 +44,6 @@ export default function Home() {
             Claude Code Cookbook
           </span>
           <div className={styles.navLinks}>
-            <Link href="/getting-started">快速开始</Link>
-            <Link href="/commands">命令大全</Link>
-            <Link href="/playground">演练</Link>
             <a
               href="https://github.com/anthropics/claude-code"
               target="_blank"
