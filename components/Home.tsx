@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import styles from '../styles/home.module.scss';
 
@@ -38,7 +39,10 @@ export default function Home() {
       <div className={styles.bgGlow} aria-hidden />
       <div className={styles.inner}>
         <header className={styles.nav}>
-          <span className={styles.brand}>Claude Code Cookbook</span>
+          <span className={styles.brand}>
+            <Image src="/icon.png" alt="" width={20} height={20} />
+            Claude Code Cookbook
+          </span>
           <div className={styles.navLinks}>
             <Link href="/getting-started">快速开始</Link>
             <Link href="/commands">命令大全</Link>
