@@ -46,17 +46,6 @@ curl -o CLAUDE.md https://raw.githubusercontent.com/forrestchang/andrej-karpathy
 - **方案更简单**，不会为了扩展性引入不必要的抽象
 - **结束时会主动验证**，跑测试 / 截图确认功能确实可用
 
-## 与 Superpowers 的区别
-
-| | Karpathy Guidelines | Superpowers |
-| :-- | :-- | :-- |
-| 定位 | 行为基线 / 编码规范 | 完整开发流程 |
-| 粒度 | 4 条原则，70 行 | 7 步工作流，多个 skill |
-| 触发方式 | 自动生效，无需手动触发 | 输入 `/skill名` 显式调用 |
-| 适合 | 所有场景，默认就开着 | 需要严格的 TDD + 子 agent 开发流程时 |
-
-两者不冲突，可以一起装：Karpathy Guidelines 保底不犯错，Superpowers 在复杂需求时提供结构化流程。
-
 ## 进一步阅读
 
 - [项目源码](https://github.com/forrestchang/andrej-karpathy-skills)
