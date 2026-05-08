@@ -1,0 +1,96 @@
+# Superpowers
+
+[Superpowers](https://github.com/obra/superpowers) 是 Jesse Vincent 开源的一套 agent 开发方法论（183k+ stars）。它把专业的软件开发流程——推敲需求、TDD、子 agent 并行开发、代码审查——打包成一组可组合的 skills，让 Claude Code 从「听话干活」升级到「能自己把控节奏」。
+
+## 核心思路
+
+普通的 coding agent 上来就写代码。Superpowers 的 agent 会先退一步：追问需求、出方案、拆分任务、TDD 驱动、子 agent 并行执行，每个环节写完自己审查——整套流程下来，代码质量和迭代效率都有明显提升。
+
+四个原则贯穿始终：
+
+- **测试先行**：永远先写测试，RED → GREEN → REFACTOR
+- **流程 > 拍脑袋**：debug 有追踪链、编码有计划、交付前有审查
+- **复杂是敌人**：YAGNI + DRY，能简单绝不复杂
+- **证据说话**：跑通了才算，不看代码说「应该没问题」
+
+## 工作流概览
+
+Superpowers 把一次完整开发拆成 7 步：
+
+| # | 步骤 | 做什么 |
+| :-- | :-- | :-- |
+| 1 | brainstorming | 追问需求、探索替代方案、输出设计文档 |
+| 2 | using-git-worktrees | 创建隔离 worktree + 新分支，跑基线测试确认环境干净 |
+| 3 | writing-plans | 把工作拆成 2-5 分钟的小任务，标注文件路径和验证方式 |
+| 4 | subagent-driven-development | 每个任务派一个全新 subagent，经 spec 审核 + 代码质量两道审查 |
+| 5 | test-driven-development | 严格 RED-GREEN-REFACTOR：红 → 绿 → 重构 → commit |
+| 6 | requesting-code-review | 对照 plan 做 review，按严重程度分级，Critical 直接阻断 |
+| 7 | finishing-a-development-branch | 跑最终测试，输出 merge/PR/保留/丢弃选项，清理现场 |
+
+## 安装
+
+在 Claude Code 中装 Superpowers 有两种方式：
+
+### 方式一：官方插件市场
+
+```bash
+/plugin install superpowers@claude-plugins-official
+```
+
+### 方式二：Superpowers 自己的市场
+
+先注册市场，再安装：
+
+```bash
+/plugin marketplace add obra/superpowers-marketplace
+/plugin install superpowers@superpowers-marketplace
+```
+
+安装后 `ls ~/.claude/plugins/` 确认插件目录下已有 `superpowers` 即可。
+
+## 使用方法
+
+安装完成后，在 Claude Code 中直接输入 skill 名即可触发：
+
+| Skill | 触发方式 | 作用 |
+| :-- | :-- | :-- |
+| brainstorming | `/brainstorming [想法]` | 推敲需求，出方案文档 |
+| writing-plans | `/writing-plans` | 拆分任务，写执行计划 |
+| test-driven-development | `/test-driven-development` | 按 RED-GREEN-REFACTOR 写代码 |
+| subagent-driven-development | `/subagent-driven-development` | 子 agent 并行推进任务 |
+| systematic-debugging | `/systematic-debugging` | 四阶段系统化排错 |
+| requesting-code-review | `/requesting-code-review` | 对照计划审查代码 |
+| finishing-a-development-branch | `/finishing-a-development-branch` | 验证、合并、清理分支 |
+| using-git-worktrees | `/using-git-worktrees` | 创建隔离工作区 |
+
+### 一个典型的使用场景
+
+```
+你：帮我做一个用户登录模块，支持邮箱和 GitHub OAuth
+
+Claude（brainstorming 被触发）：
+  1. 你是要自己维护邮箱密码，还是只做 OAuth？
+  2. session 怎么管理？JWT 还是 session cookie？
+  3. 需要邮箱验证吗？
+  4. 数据库用的什么？有没有现成的 user 表？
+  …
+
+你回答后，Claude 自动推进：
+  → writing-plans 拆分出 12 个小任务
+  → subagent-driven-development 逐个执行
+  → 每个任务写完自己跑测试
+  → 全部通过后 review 汇总
+  → 最后问你要 merge 还是提 PR
+```
+
+整个过程你只需要在开头聊清楚需求，后面 agent 自己就能推完。
+
+## 其他平台
+
+Superpowers 同样支持 Codex CLI、Cursor、Gemini CLI、GitHub Copilot CLI、OpenCode 等平台，安装方式见 [INSTALL.md](https://github.com/obra/superpowers/blob/main/INSTALL.md)。
+
+## 进一步阅读
+
+- [Superpowers 源码](https://github.com/obra/superpowers)
+- [Superpowers 社区 Discord](https://discord.gg/superpowers)
+- 想自己写 skill？参考 [动手写 Skill](/write-a-skill)

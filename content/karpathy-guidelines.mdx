@@ -1,0 +1,63 @@
+# Karpathy Guidelines
+
+[andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) 是 Forrest Chang 从 Andrej Karpathy 对 LLM 编程痛点的观察中提炼出的一套行为规范（93k+ stars）。只有一个 `CLAUDE.md` 文件，约 70 行，专门解决 AI coding agent 最常见的四类问题。
+
+## 四条核心原则
+
+### 1. 编码前先思考
+
+AI 容易自作主张、默认猜测需求、不追问不确认。这条规则要求 agent 在动手前先理解问题、问清楚模糊点、和你对齐预期后再开始写代码。
+
+### 2. 简洁优先
+
+过度工程、滥用抽象层是 AI 写代码的通病——100 行能搞定的东西硬写成 1000 行。这条规则强制 agent 用最简单可行的实现，不做 YAGNI 之外的任何设计。
+
+### 3. 精准修改
+
+AI 经常顺手改无关代码、删除它不理解的内容、风格漂移（这次用 A 模式下次用 B 模式）。这条规则要求只改跟任务直接相关的部分，保持改动面最小。
+
+### 4. 目标驱动执行
+
+模糊指令会让 AI 跑偏——「把这个页面做好看点」这种 prompt 效果很差。这条规则要求用可验证的成功标准来驱动执行，每一步都有明确的验收条件。
+
+## 安装
+
+### 方式一：Claude Code 插件（推荐）
+
+```bash
+/plugin marketplace add forrestchang/andrej-karpathy-skills
+/plugin install andrej-karpathy-skills@karpathy-skills
+```
+
+### 方式二：手动下载
+
+```bash
+curl -o CLAUDE.md https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/main/CLAUDE.md
+```
+
+## 使用方法
+
+安装后，skill 会自动注入到 Claude Code 的行为中——不需要手动触发。Claude 在写代码、改代码、review 时会自动遵循这四条原则。
+
+效果上你会明显感到 Claude：
+
+- **写代码前会先问你问题**，而不是默认猜你的意图
+- **改动更小更聚焦**，不会顺手「帮你重构」不相干的文件
+- **方案更简单**，不会为了扩展性引入不必要的抽象
+- **结束时会主动验证**，跑测试 / 截图确认功能确实可用
+
+## 与 Superpowers 的区别
+
+| | Karpathy Guidelines | Superpowers |
+| :-- | :-- | :-- |
+| 定位 | 行为基线 / 编码规范 | 完整开发流程 |
+| 粒度 | 4 条原则，70 行 | 7 步工作流，多个 skill |
+| 触发方式 | 自动生效，无需手动触发 | 输入 `/skill名` 显式调用 |
+| 适合 | 所有场景，默认就开着 | 需要严格的 TDD + 子 agent 开发流程时 |
+
+两者不冲突，可以一起装：Karpathy Guidelines 保底不犯错，Superpowers 在复杂需求时提供结构化流程。
+
+## 进一步阅读
+
+- [项目源码](https://github.com/forrestchang/andrej-karpathy-skills)
+- 想自己写 skill？参考 [动手写 Skill](/write-a-skill)
