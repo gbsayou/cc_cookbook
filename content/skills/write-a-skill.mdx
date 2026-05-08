@@ -1,0 +1,194 @@
+# 动手写一个 Skill
+
+Skill 就是一个 `SKILL.md` 文件：YAML 前置元数据 + Markdown 指令内容。放到对应目录，Claude Code 自动加载。
+
+## 写之前：想清楚四个问题
+
+在动笔之前，先回答：
+
+1. **这个 skill 让用户能做什么？** — 之前做不到、现在能做到的事
+2. **什么时候触发？** — 用户会说哪些话、输入什么命令
+3. **期望的输出格式是什么？** — 纯文本回复？代码 diff？生成文件？
+4. **能不能客观验证输出？** — 如果能（比如「必须生成一个 `.json` 文件」），就值得写测试用例；如果输出是主观的（写作风格、设计品味），测试意义不大
+
+## 文件结构
+
+```
+my-skill/
+├── SKILL.md           # 主指令（必需）
+├── scripts/           # 辅助脚本（可选）
+├── references/        # 参考资料（可选，按需加载）
+└── assets/            # 模板等资源（可选）
+```
+
+目录名就是 skill 名，输入 `/目录名` 即可触发。
+
+## 渐进式加载
+
+Skill 的内容分三级加载，控制 token 成本：
+
+| 级别 | 内容 | 何时加载 | 建议 |
+| :-- | :-- | :-- | :-- |
+| 元数据 | name、description | 始终在上下文中 | ~100 词，description 是关键 |
+| SKILL.md 正文 | 指令内容 | skill 触发时 | &lt; 500 行，越短越好 |
+| 附属资源 | scripts/、references/、assets/ | 需要时 | 放细节和辅助资料 |
+
+## 写 SKILL.md
+
+### 元数据字段
+
+| 字段 | 说明 |
+| :-- | :-- |
+| `description` | 告诉 Claude 这个 skill 做什么、何时触发。**最关键**——description 写得太保守会导致该触发时不触发，宁可写「pushy」一点 |
+| `disable-model-invocation` | 设为 `true` 则只能手动 `/` 触发，Claude 不会自动调 |
+| `user-invocable` | 设为 `false` 则从 `/` 菜单隐藏，只能 Claude 自动调 |
+| `allowed-tools` | skill 激活期间免确认的工具，如 `Bash(git *)` |
+| `context` | 设为 `fork` 则在独立 subagent 中运行，不污染主会话上下文 |
+| `agent` | 配合 `context: fork` 使用，指定 agent 类型：`Explore` / `Plan` / `general-purpose` |
+| `model` | skill 激活期间使用的模型 |
+| `arguments` | 命名参数列表，内容里用 `$参数名` 引用 |
+| `paths` | glob 匹配，只在操作特定文件时自动加载此 skill |
+
+### 正文写作要点
+
+- **用祈使句**：直接告诉 Claude 做什么，不要写「你应该…」而写「做 X」
+- **定义输出格式**：用模板明确输出结构
+- **给示例**：用 Input / Output 格式展示预期行为
+- **解释为什么**：不要只给规则，要说明背后的原因——LLM 理解了意图比死记规则执行得好
+- **偏向通用指令**：不要让 skill 过拟合到某个具体示例上
+
+## 最简示例
+
+创建一个「总结未提交改动」的 skill：
+
+**1. 建目录**
+
+```bash
+mkdir -p ~/.claude/skills/summarize-changes
+```
+
+**2. 写 `SKILL.md`**
+
+```yaml
+---
+description: 总结 git 未提交的改动，标出风险点。用户问「改了什么」「帮我写 commit message」时自动触发。
+---
+
+## 当前改动
+
+!`git diff HEAD`
+
+## 指令
+
+用两到三个 bullet point 总结上面的改动，然后列出你注意到的风险：缺少错误处理、硬编码值、需要补测试的地方等等。如果 diff 为空，直接说没有未提交改动。
+```
+
+**3. 测试**
+
+在任意 git 项目里开 Claude Code，输入 `/summarize-changes`，或者直接问「我改了什么」，Claude 会自动匹配 description 并加载 skill。
+
+## 注入动态上下文
+
+用 `` !`命令` `` 语法在执行前跑 shell 命令，输出直接嵌进 prompt。Claude 收到的是命令结果，不是命令本身：
+
+```yaml
+---
+description: 查看 PR 详情并总结
+context: fork
+agent: Explore
+allowed-tools: Bash(gh *)
+---
+
+## PR 信息
+- 改动文件：!`gh pr diff --name-only`
+- Diff：!`gh pr diff`
+- 评论：!`gh pr view --comments`
+
+## 指令
+总结这个 PR 的改动内容和潜在风险。
+```
+
+多行命令用 ` ```! ` 代码块。
+
+## 参数传递
+
+内容里用 `$ARGUMENTS` 或 `$0`、`$1` 拿参数：
+
+```yaml
+---
+name: fix-issue
+description: 修一个 GitHub issue
+disable-model-invocation: true
+---
+
+修复 GitHub issue $ARGUMENTS：
+
+1. 读 issue 描述
+2. 理解需求
+3. 实现修复
+4. 写测试
+5. 创建 commit
+```
+
+输入 `/fix-issue 123`，`$ARGUMENTS` 会被替换为 `123`。
+
+## Skill 存放位置
+
+| 位置 | 路径 | 作用范围 |
+| :-- | :-- | :-- |
+| 个人 | `~/.claude/skills/<name>/SKILL.md` | 所有项目 |
+| 项目 | `.claude/skills/<name>/SKILL.md` | 当前项目 |
+| 插件 | `<plugin>/skills/<name>/SKILL.md` | 启用插件的项目 |
+
+## 写测试用例
+
+如果你的 skill 输出可以客观验证，按以下格式创建 `evals/evals.json`：
+
+```json
+[
+  {
+    "id": "basic-usage",
+    "prompt": "用户的真实 prompt…",
+    "files": { "src/app.ts": "相关文件内容" },
+    "assertions": [
+      {
+        "id": "generates-config",
+        "description": "生成了 .claude/settings.json 文件"
+      }
+    ]
+  }
+]
+```
+
+先写 prompt，断言可以后面补。好的断言用描述性的 id，表达可以被客观验证。
+
+## 评估与迭代
+
+1. **跑测试用例** — 用 subagent 分别跑 skill 版本和 baseline（无 skill 或旧版本），对比差异
+2. **写断言** — 跑的同时补充断言，好的断言是「客观可验证」的
+3. **分析结果** — 看哪些断言没通过、哪些没有区分度、哪些不稳定
+4. **改进 skill** — 四个思考方向：
+   - **泛化**：skill 是不是过拟合到测试用例了？
+   - **精简**：有没有不产生价值的冗余指令？
+   - **解释为什么**：把死规则改成原因说明
+   - **提取重复**：如果所有测试里 subagent 都写了同样的辅助代码，把这些代码打包进 `scripts/`
+5. **重复** — 改进 → 重跑 → 对比 → 直到满意
+
+## 优化 description
+
+Skill 写完、内容稳定后，回头调优 description 触发准确率：
+
+1. 生成 20 个 prompt（8-10 个应该触发，8-10 个不应该触发——后者要是「接近但不该触发」的，不是明显无关的）
+2. 人工确认这些 prompt 是否合理
+3. 用脚本自动跑多轮，找 test score 最高的 description
+4. 把最优 description 写回 SKILL.md
+
+## 打包发布
+
+```bash
+python -m scripts.package_skill <path/to/skill-folder>
+```
+
+---
+
+以上流程参考了 [skill-creator](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md) 官方 skill。
