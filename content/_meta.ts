@@ -2,6 +2,7 @@ export default {
   index: 'Home',
   'getting-started': '快速开始',
   commands: '命令大全',
+  permissions: '权限控制',
   skills: {
     title: 'Skills',
     display: 'hidden',

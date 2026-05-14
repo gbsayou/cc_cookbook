@@ -1,0 +1,149 @@
+# 权限控制
+
+Claude Code 在执行文件编辑、shell 命令、网络请求等操作前会暂停并请求你批准。权限模式决定了这个暂停发生的频率。
+
+## 权限模式
+
+Claude Code 提供六种权限模式，在便利性和安全性之间做不同的取舍。
+
+### 模式一览
+
+| 模式 | 无需批准即可执行的操作 | 适用场景 |
+|------|----------------------|---------|
+| `default` | 仅读取 | 上手体验、敏感项目 |
+| `acceptEdits` | 读取、文件编辑、常见文件系统命令（`mkdir` `touch` `mv` `cp` 等） | 迭代开发、频繁改代码 |
+| `plan` | 仅读取 | 先探索再动手、不确定方向时 |
+| `auto` | 全部（有后台安全检查） | 长任务、减少审批疲劳 |
+| `dontAsk` | 仅预批准的工具 | CI 流水线、受限环境 |
+| `bypassPermissions` | 全部（无检查） | 隔离容器 / 虚拟机 |
+
+所有模式中（除 `bypassPermissions`），对受保护路径的写入始终需要批准，防止误改仓库状态和 CC 自身配置。
+
+### 各模式详解
+
+**default** — 默认模式，Claude 读取文件无需批准，但写文件、执行命令、网络请求都会弹出审批提示。适合初次使用或处理敏感项目。
+
+**acceptEdits** — 在 default 基础上，自动批准工作目录内的文件编辑，以及常见文件系统命令（`mkdir` `touch` `rm` `mv` `cp` `sed`）。适合频繁改代码时，事后再用 `git diff` 审查。
+
+**plan** — 仅读取和探索，不编辑源文件。Claude 会分析代码并提出方案，让你审批后再动手。适合接手别人的项目或不确定改动方向时。
+
+**auto** — Claude Code v2.1.83+ 提供。一个独立的分类器模型会在每次操作前审核，阻止越权行为。**需满足条件**：Max / Team / Enterprise / API 计划 + Sonnet 4.6 / Opus 4.6 / Opus 4.7 模型 + Anthropic API。
+
+**dontAsk** — 完全非交互式：仅执行 `allow` 列表中的操作和 [只读命令](#预批准只读指令)，其余全部拒绝。不会弹出任何提示。适合 CI 或受限脚本环境。
+
+**bypassPermissions** — 跳过所有检查。只能通过 `--permission-mode bypassPermissions` 启动时指定，无法在会话中途切换进入。仅限隔离环境使用。
+
+### 在 CLI 中切换
+
+**会话中途切换**：按 `Shift+Tab` 在 `default` → `acceptEdits` → `plan` 之间循环。
+
+`auto` 和 `bypassPermissions` 不会默认出现在循环中：
+- `auto`：账户满足条件后，首次循环到 auto 时会询问是否启用，确认后加入循环
+- `bypassPermissions`：用 `--permission-mode bypassPermissions` 启动后加入循环
+
+**启动时指定**：
+
+```bash
+claude --permission-mode plan
+claude --permission-mode acceptEdits
+```
+
+**设为默认**：在 settings 中配置 `defaultMode`。
+
+## 预设命令权限
+
+在设置文件中预设各类操作的权限，让 Claude Code 自动批准或拒绝特定命令，无需每次手动审批。
+
+### 权限规则语法
+
+规则是一个字符串，格式为 `"ToolName(pattern)"`：
+
+| 规则示例 | 含义 |
+|---------|------|
+| `Bash(git *)` | 允许所有 git 命令 |
+| `Bash(npm *)` | 允许所有 npm 命令 |
+| `Bash(npm run test)` | 仅允许 `npm run test` |
+| `Bash(npx jest *)` | 允许 jest 相关命令 |
+| `Read(**/*)` | 允许读取所有文件 |
+| `Write(src/**/*)` | 允许写入 `src/` 目录 |
+| `Edit(src/**/*)` | 允许编辑 `src/` 目录 |
+| `WebSearch` | 允许网络搜索 |
+| `WebFetch` | 允许抓取网页 |
+
+`*` 匹配任意路径片段，`**` 匹配任意深度路径。
+
+### 预批准只读指令
+
+以下 Bash 命令在任何模式下都会被自动批准（只读安全）：
+
+`cat` `head` `tail` `less` `more` `wc` `grep` `egrep` `fgrep` `ag` `rg` `ack` `find` `ls` `tree` `stat` `file` `which` `type` `du` `df` `ps` `top` `htop` `uptime` `whoami` `id` `date` `env` `printenv` `echo` `pwd`
+
+当这些命令出现在管道链中（如 `ps | grep node`）时，整个命令仍被视为只读。配合 `--` 参数或变量赋值的命令也会被自动批准（如 `LANG=C git log` 中的 `LANG=C` 前缀）。
+
+### 配置文件位置
+
+| 文件 | 作用 | 是否提交 Git |
+|------|------|------------|
+| `.claude/settings.json` | 项目级，团队共享 | 是 |
+| `.claude/settings.local.json` | 项目级，个人覆盖 | 否 |
+| `~/.claude/settings.json` | 用户级，全局生效 | — |
+
+优先级从高到低：**命令行参数** → **settings.local.json** → **settings.json** → **~/.claude/settings.json**。
+
+### 配置示例
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Read(**/*)",
+      "Write(src/**/*)",
+      "Edit(src/**/*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(rm -rf *)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}
+```
+
+- **allow** — 自动批准的规则列表，任何模式都生效（`bypassPermissions` 除外，它跳过所有检查）
+- **deny** — 始终拒绝的规则列表，即使 allow 中也有匹配
+- **defaultMode** — 启动时的默认权限模式
+
+也可以在局部配置中覆盖项目配置：
+
+```json
+// .claude/settings.local.json（不提交 git）
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push origin HEAD)"
+    ]
+  }
+}
+```
+
+> 个人设置（local / 用户级）会覆盖项目设置，所以可以给团队一份宽松的配置，自己在 local 文件中收紧。
+
+### 向 Claude 询问权限
+
+直接告诉 Claude「允许 npm 命令」「永远不要用 `git push`」，它会通过 `/permissions` 帮你配置。你也可以手动运行 `/permissions` 进入权限管理器界面。
+
+## 受保护路径
+
+无论什么模式（除 `bypassPermissions`），对以下路径的写入**始终需要批准**：
+
+**目录**：`.git` `.vscode` `.idea` `.husky` `.claude`（但 `.claude/commands` `.claude/agents` `.claude/skills` `.claude/worktrees` 除外）
+
+**文件**：`.gitconfig` `.gitmodules` `.bashrc` `.bash_profile` `.zshrc` `.zprofile` `.profile` `.ripgreprc` `.mcp.json` `.claude.json`
+
+## 参考
+
+- [Permission modes 官方文档](https://code.claude.com/docs/en/permission-modes)
+- [项目配置参考](https://claude.nagdy.me/learn/project-setup)
