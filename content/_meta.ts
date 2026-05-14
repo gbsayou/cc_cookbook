@@ -10,5 +10,5 @@ export default {
     title: 'Skills',
     href: '/skills',
   },
-  playground: '交互演练',
+  // playground: '交互演练',
 };

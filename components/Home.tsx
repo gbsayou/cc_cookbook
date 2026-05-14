@@ -18,19 +18,19 @@ const CARDS = [
     cta: '查看清单',
   },
   {
-    icon: '⟡',
-    title: '交互演练',
-    desc: '在浏览器里模拟 Claude Code 终端，先熟悉交互节奏。',
-    href: '/playground',
-    cta: '打开终端',
-  },
-  {
     icon: '✦',
     title: 'Skills',
     desc: '可复用的能力扩展包，一键触发 preset 工作流。',
     href: '/skills',
     cta: '了解 Skills',
   },
+  // {
+  //   icon: '⟡',
+  //   title: '交互演练',
+  //   desc: '在浏览器里模拟 Claude Code 终端，先熟悉交互节奏。',
+  //   href: '/playground',
+  //   cta: '打开终端',
+  // },
 ];
 
 export default function Home() {
@@ -73,9 +73,9 @@ export default function Home() {
               快速开始
               <span aria-hidden>→</span>
             </Link>
-            <Link href="/playground" className={styles.secondary}>
+            {/* <Link href="/playground" className={styles.secondary}>
               打开演练场
-            </Link>
+            </Link> */}
           </div>
         </section>
 
