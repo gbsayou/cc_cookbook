@@ -3,7 +3,7 @@
 ## 安装
 
 ```bash
-npm install -g @anthropic-ai/claude-code
+curl -fsSL https://claude.ai/install.sh | bash
 ```
 
 ## 登录
@@ -22,7 +22,79 @@ claude
 
 Claude Code 会读取相关文件、提出修改、并在你确认后写入磁盘。
 
-## 下一步
+## 接入 DeepSeek（国内推荐）
 
-- 试试内置命令：`/init`、`/review`、`/help`
-- 打开 [交互演练](/playground) 在浏览器里感受一下
+### 为什么用 DeepSeek？
+
+Claude Code 官方服务在国内存在以下限制：
+
+- **网络访问困难**：Anthropic API 在国内无法直连，需要代理
+- **支付门槛高**：需要外币卡注册 Anthropic 账号
+- **价格较贵**：Claude Opus 模型每百万 token 约 $15，高频使用成本不低
+
+DeepSeek 作为替代方案：
+
+- **价格低**：每百万 token 约 ¥2-10，是 Anthropic 的几十分之一
+- **速度快**：V4 系列模型推理速度很快，日常编码体验流畅
+- **性能够用**：DeepSeek V4 Pro 在代码生成、逻辑推理等任务上表现扎实
+- **国内直连**：无需代理，网络稳定
+
+> 参考：[DeepSeek 官方 Claude Code 配置指南](https://github.com/deepseek-ai/awesome-deepseek-agent/blob/main/docs/claude_code.zh-CN.md)
+
+### Mac 配置方式
+
+两种方式任选其一，推荐**配置文件方式**（CLI 和 VS Code 扩展都能读取）。
+
+---
+
+#### 方式一：settings.json（推荐）
+
+创建或编辑 `~/.claude/settings.json`：
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+    "ANTHROPIC_AUTH_TOKEN": "<你的 DeepSeek API Key>",
+    "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash[1m]",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_EFFORT_LEVEL": "max"
+  }
+}
+```
+
+#### 方式二：环境变量
+
+在 `~/.zshrc`（或 `~/.bash_profile`）中添加：
+
+```bash
+export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+export ANTHROPIC_AUTH_TOKEN=<你的 DeepSeek API Key>
+export ANTHROPIC_MODEL=deepseek-v4-pro[1m]
+export ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek-v4-pro[1m]
+export ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek-v4-pro[1m]
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash[1m]
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+export CLAUDE_CODE_EFFORT_LEVEL=max
+```
+
+配置完成后执行 `source ~/.zshrc`（或重新打开终端），进入项目目录运行 `claude` 即可。
+
+---
+
+### 各变量说明
+
+| 变量 | 作用 |
+|------|------|
+| `ANTHROPIC_BASE_URL` | 指向 DeepSeek 的 Anthropic 兼容端点 |
+| `ANTHROPIC_AUTH_TOKEN` | DeepSeek API Key（在 [platform.deepseek.com](https://platform.deepseek.com/api_keys) 获取） |
+| `ANTHROPIC_MODEL` | 默认使用的主模型 |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | 替代 Opus 对应的高难度任务模型 |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | 替代 Sonnet 对应的中档任务模型 |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | 替代 Haiku 对应的轻量快速任务模型 |
+| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | 禁用非必要网络请求（避免报错） |
+| `CLAUDE_CODE_EFFORT_LEVEL` | 推理力度设为最高 |
+
