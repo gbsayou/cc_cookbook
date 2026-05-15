@@ -1,0 +1,224 @@
+# 记忆与规则
+
+Claude Code 每次启动都是空上下文。要让它跨会话记住项目约定、构建命令、个人偏好，靠两类文件：
+
+- **CLAUDE.md** — 你手写的持久指令，每次启动加载
+- **Auto memory** — Claude 自己记下来的笔记，遇到纠正或偏好时自动更新
+
+|  | CLAUDE.md | Auto memory |
+| :-- | :-- | :-- |
+| 谁来写 | 你 | Claude |
+| 内容 | 规则、约定、命令 | 学到的模式、踩过的坑、偏好 |
+| 范围 | 项目 / 个人 / 组织 | 每个仓库一份，worktree 共享 |
+| 加载方式 | 每次会话全量加载 | 每次加载 `MEMORY.md` 前 200 行 / 25KB |
+
+## CLAUDE.md
+
+一个普通的 Markdown 文件，写下你不想每次重新解释的东西。
+
+### 什么时候往里加
+
+- Claude 第二次犯同一个错
+- Code review 抓到一个它本该知道的项目惯例
+- 你在对话里又敲了一遍上次的纠正
+- 新同事入职也得讲一遍的那种背景
+
+只放**每个会话都该带着的事实**：构建命令、技术栈、目录结构、"永远要 X" 的硬规则。多步流程或只针对部分文件的规则，挪到 [path-scoped rules](#path-scoped-rules) 或 [Skill](/skills) 里。
+
+### 文件位置
+
+按加载顺序（范围从大到小），同一会话里**全部拼接**进上下文，靠下面的覆盖靠上的：
+
+| 范围 | 路径 | 用途 | 共享给谁 |
+| :-- | :-- | :-- | :-- |
+| 组织级 | macOS `/Library/Application Support/ClaudeCode/CLAUDE.md` | IT 集中下发，无法被覆盖 | 全机器所有用户 |
+| 个人级 | `~/.claude/CLAUDE.md` | 跨项目的个人偏好 | 仅你（所有项目） |
+| 项目级 | `./CLAUDE.md` 或 `./.claude/CLAUDE.md` | 团队共享的项目约定 | 团队（提交 git） |
+| 项目本地 | `./CLAUDE.local.md` | 项目内的个人沙盒，加 `.gitignore` | 仅你（当前项目） |
+
+向上递归查找：在 `foo/bar/` 里启动，会同时加载 `foo/CLAUDE.md` 和 `foo/bar/CLAUDE.md`，越靠近工作目录的越后读、优先级越高。子目录里的 `CLAUDE.md` 不会启动时加载，而是 Claude 读到那个目录的文件时**按需载入**。
+
+### 怎么写才有用
+
+每个 CLAUDE.md 都会消耗 token，写法直接影响遵守率。
+
+- **控制长度**：目标 < 200 行。超了优先拆 path-scoped rules
+- **具体到能验证**：写 "用 2 空格缩进"，不要写 "代码风格要好"；写 "提交前跑 `npm test`"，不要写 "测一下"
+- **结构化**：用 Markdown 标题 + 列表分组，别堆大段散文
+- **避免冲突**：两条规则打架时 Claude 会随便挑一条。多个 CLAUDE.md 之间也要核对是否有冲突
+
+### `/init` 生成模板
+
+在cc中执行 `/init`，Claude 会扫一遍仓库并生成一份 CLAUDE.md（已有的话会建议改动而不是覆盖）。
+
+## `@path` 导入
+
+CLAUDE.md 里可以用 `@path/to/file` 引用其他文件，启动时一并展开进上下文：
+
+```markdown
+项目概览见 @README.md，可用命令见 @package.json。
+
+## 工作流
+- Git 规范：@docs/git-instructions.md
+- 个人偏好：@~/.claude/my-preferences.md
+```
+
+- 相对路径相对当前文件解析，不是工作目录
+- 最多 5 层递归
+- 跨项目导入第一次会弹批准弹窗，拒绝后就不再问
+
+注意：导入只是组织手段，**不省 token**，被引文件照样进上下文。要省 token 用 `.claude/rules/` 的 path scoping。
+
+## 复用 AGENTS.md / .cursorrules
+
+Claude Code 只认 CLAUDE.md，但你可以让它读已有的 `AGENTS.md`：
+
+```markdown
+@AGENTS.md
+
+## Claude Code 专属
+
+src/billing/ 下的改动一律先进 plan 模式。
+```
+
+`/init` 在已有 `AGENTS.md` / `.cursorrules` / `.windsurfrules` 的仓库里会把相关内容合并到生成的 CLAUDE.md 里。
+
+## `.claude/rules/` 拆分规则
+
+项目大了 CLAUDE.md 会膨胀，可以拆进 `.claude/rules/`：
+
+```text
+your-project/
+├── .claude/
+│   ├── CLAUDE.md
+│   └── rules/
+│       ├── code-style.md
+│       ├── testing.md
+│       └── api/
+│           └── design.md
+```
+
+所有 `.md` 文件递归发现，无前置 `paths` 的规则在启动时加载，优先级跟 `.claude/CLAUDE.md` 一样。
+
+### Path-scoped rules
+
+加 YAML frontmatter 让规则**只在相关文件被读到时加载**，节省上下文，减少 token 消耗：
+
+```markdown
+---
+paths:
+  - "src/api/**/*.ts"
+  - "src/api/**/*.tsx"
+---
+
+# API 开发规范
+
+- 所有 endpoint 用 Zod 校验入参
+- 失败返回 400 + field-level error
+- 必须写 OpenAPI 注释
+```
+
+支持 glob：
+
+| 模式 | 匹配 |
+| :-- | :-- |
+| `**/*.ts` | 所有 TypeScript 文件 |
+| `src/**/*` | `src/` 下所有 |
+| `*.md` | 项目根的 Markdown |
+| `src/**/*.{ts,tsx}` | brace expansion |
+
+### 跨项目共享
+
+`.claude/rules/` 支持软链，可以维护一份 shared rules 链到多个项目：
+
+```bash
+ln -s ~/shared-claude-rules .claude/rules/shared
+ln -s ~/company-standards/security.md .claude/rules/security.md
+```
+
+### 个人 rules
+
+`~/.claude/rules/*.md` 全局生效，比项目 rules 早加载、优先级更低。适合放个人风格和工作流偏好。
+
+## Auto memory（自动记忆）
+
+`v2.1.59+` 默认开启。Claude 在会话中主动决定哪些东西值得记下来：构建命令、调试技巧、代码风格偏好、踩过的坑……不是每次都写，是它判断"以后还会用到"才写。
+
+### 存在哪
+
+每个仓库一个目录：`~/.claude/projects/<project>/memory/`，所有 worktree 共享。
+
+```text
+~/.claude/projects/<project>/memory/
+├── MEMORY.md          # 索引，每次会话加载前 200 行 / 25KB
+├── debugging.md       # 详细笔记，按需加载
+├── api-conventions.md
+└── ...
+```
+
+`MEMORY.md` 是索引，详细内容拆到各 topic 文件，Claude 用文件工具按需读。
+
+### 开关与目录
+
+```json
+// .claude/settings.json
+{
+  "autoMemoryEnabled": false
+}
+```
+
+```json
+// ~/.claude/settings.json — 改默认目录
+{
+  "autoMemoryDirectory": "~/my-custom-memory-dir"
+}
+```
+
+或环境变量 `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` 整个关掉。
+
+> `autoMemoryDirectory` **只接受**用户/managed 配置，不接受项目配置 — 防止 clone 仓库时被指向敏感路径。
+
+### 直接让 Claude 记
+
+在对话里说 "记一下：这个项目用 pnpm 不用 npm"，Claude 会写到 auto memory。想写进 CLAUDE.md 就明确说 "加到 CLAUDE.md"。
+
+## `/memory` 命令
+
+会话中输入 `/memory` 可以：
+
+- 列出当前加载的所有 CLAUDE.md / CLAUDE.local.md / rules
+- 切换 auto memory 开关
+- 打开 auto memory 文件夹
+- 选任一文件进编辑器修改（保存后自动重载）
+
+是排查"为啥规则没生效"的第一步。
+
+## Monorepo 排除
+
+祖先目录的 CLAUDE.md 都会被加载，monorepo 里容易 include 到隔壁组的规则。用 `claudeMdExcludes` 跳过：
+
+```json
+// .claude/settings.local.json
+{
+  "claudeMdExcludes": [
+    "**/monorepo/CLAUDE.md",
+    "/home/user/monorepo/other-team/.claude/rules/**"
+  ]
+}
+```
+
+managed policy 下发的 CLAUDE.md 无法被排除，确保组织规则始终生效。
+
+## 常见问题
+
+- **规则没被遵守**：先 `/memory` 确认文件被加载了；再看指令是否够具体；最后检查多个文件之间有没有冲突
+- **CLAUDE.md 太长**：超 200 行会显著降低遵守率。使用 path-scoped rules 进行拆分，别靠 `@import`（不省 token）
+- **`/compact` 后规则消失**：项目根 CLAUDE.md 会被重新注入；子目录里的 CLAUDE.md 要等 Claude 再读到那个目录才会重载。临时在对话里给的指令也会被压缩掉，要持久就写进 CLAUDE.md
+- **必须在生命周期某个点跑的事**：写进 CLAUDE.md 不保险，应该用 [hooks](https://code.claude.com/docs/en/hooks-guide)，由 harness 强制执行
+- **HTML 注释会被剥离**：`<!-- ... -->` 不进上下文，可以用来给人写维护备注，但代码块里的注释保留
+
+## 参考
+
+- [Memory 官方文档](https://code.claude.com/docs/en/memory)
+- [Memory 学习指南](https://claude.nagdy.me/learn/memory)
+- [Hooks 指南](https://code.claude.com/docs/en/hooks-guide)
